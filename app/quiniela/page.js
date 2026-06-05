@@ -107,7 +107,7 @@ export default function QuinielaPage() {
     router.push('/')
   }
 
-  const grupos = [...new Set(partidos.sort((a, b) => a.id - b.id).map(p => p.grupo))]
+  const partidosOrdenados = [...partidos].sort((a, b) => a.id - b.id)
   const totalSeleccionados = Object.keys(picks).length
   const cerrada = isClosed()
 
@@ -190,104 +190,97 @@ export default function QuinielaPage() {
             </span>
           </div>
 
-          {grupos.map(grupo => (
-            <div key={grupo}>
-              <p style={{ fontSize: 10, fontWeight: 700, color: '#4a7a5a', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '14px 0 6px 2px' }}>
-                Grupo {grupo}
-              </p>
-              {partidos.filter(p => p.grupo === grupo).map(partido => {
-                const pick = picks[partido.id]
-                const ex = exactos[partido.id] || { local: '', visitante: '' }
+          {partidosOrdenados.map(partido => {
+            const pick = picks[partido.id]
+            const ex = exactos[partido.id] || { local: '', visitante: '' }
 
-                const btnStyle = (key) => ({
-                  padding: '9px 4px', fontSize: 11, fontWeight: 600,
-                  borderRadius: 10, border: '1.5px solid',
-                  cursor: cerrada ? 'not-allowed' : 'pointer',
-                  textAlign: 'center', transition: 'all 0.15s',
-                  borderColor: pick === key
-                    ? key === 'local' ? V : key === 'empate' ? '#8aaa96' : DO
-                    : VB,
-                  background: pick === key
-                    ? key === 'local' ? V : key === 'empate' ? '#4a7a5a' : DC
-                    : '#fafcfa',
-                  color: pick === key
-                    ? key === 'local' ? DO : key === 'empate' ? '#fff' : DT
-                    : '#5a7a6a'
-                })
+            const btnStyle = (key) => ({
+              padding: '9px 4px', fontSize: 11, fontWeight: 600,
+              borderRadius: 10, border: '1.5px solid',
+              cursor: cerrada ? 'not-allowed' : 'pointer',
+              textAlign: 'center', transition: 'all 0.15s',
+              borderColor: pick === key
+                ? key === 'local' ? V : key === 'empate' ? '#4a7a5a' : DO
+                : VB,
+              background: pick === key
+                ? key === 'local' ? V : key === 'empate' ? '#4a7a5a' : DC
+                : '#fafcfa',
+              color: pick === key
+                ? key === 'local' ? DO : key === 'empate' ? '#fff' : DT
+                : '#5a7a6a'
+            })
 
-                return (
-                  <div key={partido.id} style={{
-                    background: '#fff', borderRadius: 14,
-                    padding: '14px 16px', marginBottom: 8,
-                    border: `1px solid ${VB}`
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-                      <span style={{ fontSize: 10, color: '#8aaa96' }}>{partido.fecha}</span>
-                      {partido.resultado_exacto && (
-                        <span style={{ background: DC, color: DT, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
-                          ⭐ Resultado exacto
-                        </span>
-                      )}
+            return (
+              <div key={partido.id} style={{
+                background: '#fff', borderRadius: 14,
+                padding: '14px 16px', marginBottom: 8,
+                border: `1px solid ${VB}`
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <span style={{ fontSize: 10, color: '#8aaa96' }}>{partido.fecha} · Grupo {partido.grupo}</span>
+                  {partido.resultado_exacto && (
+                    <span style={{ background: DC, color: DT, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
+                      ⭐ Resultado exacto
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1a2e22' }}>{partido.local}</span>
+                  <span style={{ fontSize: 10, color: '#aac5b4', fontWeight: 500 }}>vs</span>
+                  <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1a2e22', textAlign: 'right' }}>{partido.visitante}</span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
+                  {[
+                    { key: 'local', label: partido.local },
+                    { key: 'empate', label: 'Empate' },
+                    { key: 'visitante', label: partido.visitante }
+                  ].map(op => (
+                    <button key={op.key} onClick={() => selectPick(partido.id, op.key)} style={btnStyle(op.key)}>
+                      {op.label}
+                    </button>
+                  ))}
+                </div>
+
+                {partido.resultado_exacto && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, paddingTop: 10, borderTop: `1px solid #eef3ee` }}>
+                    <span style={{ fontSize: 11, color: '#8aaa96', flex: 1 }}>Marcador exacto</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <input
+                        type="number" min="0" max="20"
+                        value={ex.local}
+                        onChange={e => setGol(partido.id, 'local', e.target.value)}
+                        disabled={cerrada}
+                        style={{
+                          width: 40, height: 36, textAlign: 'center',
+                          fontSize: 16, fontWeight: 700,
+                          border: `1.5px solid ${VB}`, borderRadius: 8,
+                          color: '#1a2e22', background: '#fafcfa', outline: 'none'
+                        }}
+                      />
+                      <span style={{ fontSize: 14, color: '#aac5b4' }}>-</span>
+                      <input
+                        type="number" min="0" max="20"
+                        value={ex.visitante}
+                        onChange={e => setGol(partido.id, 'visitante', e.target.value)}
+                        disabled={cerrada}
+                        style={{
+                          width: 40, height: 36, textAlign: 'center',
+                          fontSize: 16, fontWeight: 700,
+                          border: `1.5px solid ${VB}`, borderRadius: 8,
+                          color: '#1a2e22', background: '#fafcfa', outline: 'none'
+                        }}
+                      />
                     </div>
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1a2e22' }}>{partido.local}</span>
-                      <span style={{ fontSize: 10, color: '#aac5b4', fontWeight: 500 }}>vs</span>
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 700, color: '#1a2e22', textAlign: 'right' }}>{partido.visitante}</span>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6 }}>
-                      {[
-                        { key: 'local', label: partido.local },
-                        { key: 'empate', label: 'Empate' },
-                        { key: 'visitante', label: partido.visitante }
-                      ].map(op => (
-                        <button key={op.key} onClick={() => selectPick(partido.id, op.key)} style={btnStyle(op.key)}>
-                          {op.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {partido.resultado_exacto && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 10, paddingTop: 10, borderTop: `1px solid #eef3ee` }}>
-                        <span style={{ fontSize: 11, color: '#8aaa96', flex: 1 }}>Marcador exacto</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          <input
-                            type="number" min="0" max="20"
-                            value={ex.local}
-                            onChange={e => setGol(partido.id, 'local', e.target.value)}
-                            disabled={cerrada}
-                            style={{
-                              width: 40, height: 36, textAlign: 'center',
-                              fontSize: 16, fontWeight: 700,
-                              border: `1.5px solid ${VB}`, borderRadius: 8,
-                              color: '#1a2e22', background: '#fafcfa', outline: 'none'
-                            }}
-                          />
-                          <span style={{ fontSize: 14, color: '#aac5b4' }}>-</span>
-                          <input
-                            type="number" min="0" max="20"
-                            value={ex.visitante}
-                            onChange={e => setGol(partido.id, 'visitante', e.target.value)}
-                            disabled={cerrada}
-                            style={{
-                              width: 40, height: 36, textAlign: 'center',
-                              fontSize: 16, fontWeight: 700,
-                              border: `1.5px solid ${VB}`, borderRadius: 8,
-                              color: '#1a2e22', background: '#fafcfa', outline: 'none'
-                            }}
-                          />
-                        </div>
-                        <span style={{ background: DC, color: DT, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
-                          +{config?.puntos_exacto} pts
-                        </span>
-                      </div>
-                    )}
+                    <span style={{ background: DC, color: DT, fontSize: 10, fontWeight: 600, padding: '3px 8px', borderRadius: 20 }}>
+                      +{config?.puntos_exacto} pts
+                    </span>
                   </div>
-                )
-              })}
-            </div>
-          ))}
+                )}
+              </div>
+            )
+          })}
 
           {!cerrada && (
             <div style={{ position: 'sticky', bottom: 12, marginTop: 8 }}>
