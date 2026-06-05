@@ -102,8 +102,8 @@ export default function AdminPage() {
     </div>
   )
 
-  const tabs = ['partidos', 'equipos', 'config', 'tabla']
-  const tabLabel = { partidos: '⚽ Resultados', equipos: '🗂 Partidos', config: '⚙️ Config', tabla: '🏆 Tabla' }
+    const tabs = ['partidos', 'equipos', 'config', 'tabla', 'usuarios']
+    const tabLabel = { partidos: '⚽ Resultados', equipos: '🗂 Partidos', config: '⚙️ Config', tabla: '🏆 Tabla', usuarios: '👤 Usuarios' }
 
   return (
     <div style={{ maxWidth: 640, margin: '0 auto', padding: '1rem' }}>
@@ -327,6 +327,7 @@ export default function AdminPage() {
       )}
 
       {activeTab === 'tabla' && <AdminTabla />}
+      {activeTab === 'usuarios' && <AdminUsuarios setMsg={setMsg} />}
     </div>
   )
 }
@@ -516,6 +517,119 @@ function GestorPartidos({ partidos, setPartidos, setMsg }) {
             >
               Eliminar
             </button>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function AdminUsuarios({ setMsg }) {
+  const [participantes, setParticipantes] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [resetId, setResetId] = useState(null)
+  const [nuevaPass, setNuevaPass] = useState('')
+  const [saving, setSaving] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/participantes')
+      .then(r => r.json())
+      .then(d => { setParticipantes(d); setLoading(false) })
+  }, [])
+
+  async function resetPassword(participante) {
+    if (!nuevaPass || nuevaPass.length < 4) {
+      setMsg('La contraseña debe tener al menos 4 caracteres.'); return
+    }
+    setSaving(true)
+    const res = await fetch('/api/participantes/reset', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ participante_id: participante.id, nueva_password: nuevaPass })
+    })
+    const data = await res.json()
+    if (data.error) { setMsg('Error: ' + data.error); setSaving(false); return }
+    setMsg(`✓ Contraseña de ${participante.nombre} actualizada`)
+    setResetId(null)
+    setNuevaPass('')
+    setSaving(false)
+  }
+
+  if (loading) return <p style={{ textAlign: 'center', color: '#8aaa96', fontSize: 13, padding: '2rem' }}>Cargando...</p>
+
+  return (
+    <div>
+      <p style={{ fontSize: 12, color: '#6a8a76', marginBottom: 12 }}>
+        {participantes.length} participante{participantes.length !== 1 ? 's' : ''} registrados
+      </p>
+      {participantes.length === 0 && (
+        <p style={{ textAlign: 'center', color: '#8aaa96', fontSize: 13, padding: '2rem' }}>
+          Aún no hay participantes registrados.
+        </p>
+      )}
+      {participantes.map(p => (
+        <div key={p.id} style={{
+          background: '#fff', borderRadius: 12,
+          border: `1px solid ${VB}`, padding: '12px 16px',
+          marginBottom: 8
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{
+              width: 34, height: 34, borderRadius: '50%',
+              background: V, color: DO,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 11, fontWeight: 700, flexShrink: 0
+            }}>
+              {p.nombre.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+            </div>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: '#1a2e22' }}>{p.nombre}</p>
+              <p style={{ fontSize: 11, color: '#8aaa96' }}>{p.email}</p>
+            </div>
+            {resetId === p.id ? (
+              <button
+                onClick={() => { setResetId(null); setNuevaPass('') }}
+                style={{ background: '#f0f4f0', color: '#4a7a5a', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, cursor: 'pointer' }}
+              >
+                Cancelar
+              </button>
+            ) : (
+              <button
+                onClick={() => { setResetId(p.id); setNuevaPass('') }}
+                style={{ background: DC, color: DT, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              >
+                Resetear contraseña
+              </button>
+            )}
+          </div>
+
+          {resetId === p.id && (
+            <div style={{ marginTop: 12, paddingTop: 12, borderTop: `1px solid ${VB}`, display: 'flex', gap: 8, alignItems: 'center' }}>
+              <input
+                type="text"
+                value={nuevaPass}
+                onChange={e => setNuevaPass(e.target.value)}
+                placeholder="Nueva contraseña"
+                style={{
+                  flex: 1, padding: '9px 12px',
+                  border: `1.5px solid ${VB}`, borderRadius: 10,
+                  fontSize: 13, outline: 'none',
+                  color: '#1a2e22', background: '#fafcfa'
+                }}
+              />
+              <button
+                onClick={() => resetPassword(p)}
+                disabled={saving}
+                style={{
+                  background: V, color: DO,
+                  border: 'none', borderRadius: 10,
+                  padding: '9px 16px', fontSize: 12,
+                  fontWeight: 700, cursor: 'pointer'
+                }}
+              >
+                {saving ? 'Guardando...' : 'Guardar'}
+              </button>
+            </div>
           )}
         </div>
       ))}
