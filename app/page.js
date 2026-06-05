@@ -1,65 +1,132 @@
-import Image from "next/image";
+'use client'
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 
-export default function Home() {
+export default function LoginPage() {
+  const router = useRouter()
+  const [modo, setModo] = useState('login')
+  const [nombre, setNombre] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [passwordConfirm, setPasswordConfirm] = useState('')
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit() {
+    setError('')
+    if (!email.trim() || !email.includes('@')) { setError('Ingresa un correo válido.'); return }
+    if (!password) { setError('Ingresa tu contraseña.'); return }
+
+    if (modo === 'register') {
+      if (!nombre.trim()) { setError('Ingresa tu nombre.'); return }
+      if (password.length < 4) { setError('La contraseña debe tener al menos 4 caracteres.'); return }
+      if (password !== passwordConfirm) { setError('Las contraseñas no coinciden.'); return }
+    }
+
+    setLoading(true)
+    const body = modo === 'login'
+      ? { action: 'login', email, password }
+      : { action: 'register', nombre, email, password }
+
+    const res = await fetch('/api/participantes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+    const data = await res.json()
+    if (data.error) { setError(data.error); setLoading(false); return }
+
+    localStorage.setItem('quiniela_user', JSON.stringify({ id: data.id, nombre: data.nombre, email: data.email }))
+    if (data.email === process.env.NEXT_PUBLIC_ADMIN_EMAIL) {
+      router.push('/admin')
+    } else {
+      router.push('/quiniela')
+    }
+  }
+
+  const inputStyle = {
+    width: '100%', padding: '10px 12px',
+    border: '1.5px solid #dde8dd', borderRadius: 10,
+    fontSize: 14, outline: 'none',
+    color: '#1a2e22', background: '#fafcfa'
+  }
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
+      <div style={{ width: '100%', maxWidth: 380 }}>
+
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+          <div style={{
+            width: 72, height: 72, borderRadius: '50%',
+            background: '#1a3a2a', display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            fontSize: 32, margin: '0 auto 1rem'
+          }}>⚽</div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: '#1a3a2a', marginBottom: 4 }}>Quiniela</h1>
+          <p style={{ fontSize: 13, color: '#6a8a76' }}>
+            {modo === 'login' ? 'Inicia sesión para participar' : 'Crea tu cuenta para participar'}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #dde8dd', padding: '1.5rem' }}>
+
+          <div style={{ display: 'flex', gap: 6, background: '#e4ede4', borderRadius: 10, padding: 4, marginBottom: '1.25rem' }}>
+            {['login', 'register'].map(m => (
+              <button key={m} onClick={() => { setModo(m); setError('') }} style={{
+                flex: 1, padding: '8px', fontSize: 13, fontWeight: 600,
+                borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: modo === m ? '#1a3a2a' : 'transparent',
+                color: modo === m ? '#c9a84c' : '#4a7a5a'
+              }}>
+                {m === 'login' ? 'Iniciar sesión' : 'Registrarme'}
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {modo === 'register' && (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: '#6a8a76', marginBottom: 6, fontWeight: 500 }}>Nombre completo</label>
+                <input type="text" value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Tu nombre" style={inputStyle} />
+              </div>
+            )}
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#6a8a76', marginBottom: 6, fontWeight: 500 }}>Correo electrónico</label>
+              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@correo.com" style={inputStyle} />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: 12, color: '#6a8a76', marginBottom: 6, fontWeight: 500 }}>Contraseña</label>
+              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Mínimo 4 caracteres" style={inputStyle} />
+            </div>
+            {modo === 'register' && (
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: '#6a8a76', marginBottom: 6, fontWeight: 500 }}>Confirmar contraseña</label>
+                <input type="password" value={passwordConfirm} onChange={e => setPasswordConfirm(e.target.value)} placeholder="Repite tu contraseña" onKeyDown={e => e.key === 'Enter' && handleSubmit()} style={inputStyle} />
+              </div>
+            )}
+          </div>
+
+          {error && <p style={{ color: '#b84a4a', fontSize: 12, marginTop: '0.75rem' }}>{error}</p>}
+
+          <button
+            onClick={handleSubmit}
+            disabled={loading}
+            style={{
+              width: '100%', padding: '12px', marginTop: '1.25rem',
+              background: loading ? '#4a7a5a' : '#1a3a2a',
+              color: '#c9a84c', border: 'none', borderRadius: 12,
+              fontSize: 14, fontWeight: 700,
+              cursor: loading ? 'not-allowed' : 'pointer'
+            }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            {loading ? 'Cargando...' : modo === 'login' ? 'Entrar' : 'Crear cuenta'}
+          </button>
         </div>
-      </main>
+
+        <p style={{ textAlign: 'center', fontSize: 11, color: '#8aaa96', marginTop: '1rem' }}>
+          Cierre de quiniela: 10 de junio, 11:59 PM
+        </p>
+      </div>
     </div>
-  );
+  )
 }
