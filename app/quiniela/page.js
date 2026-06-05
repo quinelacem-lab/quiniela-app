@@ -107,7 +107,7 @@ export default function QuinielaPage() {
     router.push('/')
   }
 
-  const grupos = [...new Set(partidos.map(p => p.grupo))].sort()
+  const grupos = [...new Set(partidos.sort((a, b) => a.id - b.id).map(p => p.grupo))]
   const totalSeleccionados = Object.keys(picks).length
   const cerrada = isClosed()
 
